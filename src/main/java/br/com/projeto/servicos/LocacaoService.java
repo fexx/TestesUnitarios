@@ -7,12 +7,22 @@ import java.util.Date;
 import br.com.projeto.entidades.Filme;
 import br.com.projeto.entidades.Locacao;
 import br.com.projeto.entidades.Usuario;
+import br.com.projeto.exceptions.FilmeSemEstoqueException;
+import br.com.projeto.exceptions.LocadoraException;
 
 public class LocacaoService {
 	
-	public Locacao alugarFilme(Usuario usuario, Filme filme) throws Exception {
+	public Locacao alugarFilme(Usuario usuario, Filme filme) throws FilmeSemEstoqueException, LocadoraException {
+		if(usuario == null) {
+			throw new LocadoraException("Usuario vazio");
+		}
+		
+		if(filme == null) {
+			throw new LocadoraException("Filme vazio");
+		}
+		
 		if(filme.getEstoque() == 0) {
-			throw new Exception("Filme sem estoque");
+			throw new FilmeSemEstoqueException();
 		}
 		
 		Locacao locacao = new Locacao();

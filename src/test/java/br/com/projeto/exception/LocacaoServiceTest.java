@@ -1,44 +1,74 @@
 package br.com.projeto.exception;
 
+
+import static br.com.projeto.utils.DataUtils.isMesmaData;
+import static br.com.projeto.utils.DataUtils.obterDataComDiferencaDias;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.Date;
+
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ErrorCollector;
 import org.junit.rules.ExpectedException;
 
 import br.com.projeto.entidades.Filme;
+import br.com.projeto.entidades.Locacao;
 import br.com.projeto.entidades.Usuario;
+import br.com.projeto.exceptions.FilmeSemEstoqueException;
+import br.com.projeto.exceptions.LocadoraException;
 import br.com.projeto.servicos.LocacaoService;
 
-/*
- * Algumas formas de trabalhar com exception em teste unitarios
- */
 public class LocacaoServiceTest {
+
+	private static int contador = 0;
 	
-	/*
-	 * Rule para se trabalhar com exeçoes em teste
-	 */
+	private LocacaoService service;
+	
+	@Rule
+	public ErrorCollector error = new ErrorCollector();
+	
 	@Rule
 	public ExpectedException exception = ExpectedException.none();
 	
-	/*
-	 * Quando queremos testar um codigo que lança
-	 * uma exceção e caso isso aconteça o teste
-	 * passará com sucesso, pois já esta esperando a exceção
-	 * Para deixar o Junt cuidar disso
-	 * Temos que informar para ele qual exceção estamos esperando
-	 * Para isso temos que passar a excecão como parametro
-	 * na Anotação test: @Test(expected = Exception.class)
-	 * No caso abaixo, esperamos uma exeção bem generica a Exception
-	 * Mas poderia esperar uma outra qualquer .  
-	 * 
+	/* @before chama o metodo antes a cada teste ser executado
+	 * @After chama o metodo apos cada teste ser executado
+	 * @BeforeClass chama o metodo antes da classe ser instanciada, porém o metodo tem que ser static
+	 * @AfterClass chama o metodo apos a classe ser destruida, porém o metodo tem que ser static
 	 */
-	@Test(expected = Exception.class)
+	@Before
+	public void setup(){
+		service = new LocacaoService();
+		/* Para o contador ser incrementado a cada teste,
+		 * e não deixar o junit reinicializar a variavel
+		 * é necessario criar a variavel como static 
+		 */
+		contador++;
+		System.out.println(contador);
+	}
+	
+	@Test
+	public void testeLocacao() throws Exception {
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		Filme filme = new Filme("Filme 1", 1, 5.0);
+		
+		//acao
+		Locacao locacao = service.alugarFilme(usuario, filme);
+			
+		//verificacao
+		error.checkThat(locacao.getValor(), is(equalTo(5.0)));
+		error.checkThat(isMesmaData(locacao.getDataLocacao(), new Date()), is(true));
+		error.checkThat(isMesmaData(locacao.getDataRetorno(), obterDataComDiferencaDias(1)), is(true));
+	}
+	
+	@Test(expected = FilmeSemEstoqueException.class)
 	public void testLocacao_filmeSemEstoque() throws Exception{
 		//cenario
-		LocacaoService service = new LocacaoService();
 		Usuario usuario = new Usuario("Usuario 1");
 		Filme filme = new Filme("Filme 2", 0, 4.0);
 		
@@ -46,66 +76,30 @@ public class LocacaoServiceTest {
 		service.alugarFilme(usuario, filme);
 	}
 	
-	/*
-	 * Uma outra forma de trabalhar com exception em teste
-	 * É trantando manualmente, sem a ajudar do junit
-	 * No caso abaixo englobamos o metodo que lanca uma
-	 * excecao com um try catch, detro do catch verificamos
-	 * Se a mensagem da exception e a esperada
-	 * Nesse caso, vai ser um parecido com um falso positivo
-	 * Pois lancar uma excecao o vai cair no catch e no catch
-	 * Estamos verificando a mensagem de erro, com o isso
-	 * O teste passar com sucesso.
-	 * Mas se o metodo não lancar excecao ele tbm passara com sucesso
-	 * Para isso no try logo apos a chamada do metodo, temos que 
-	 * incluir um Assert.fail, informado que era para ter lancado
-	 * uma excecao
-	 * 
-	 * Caso isso aconteca o teste passara com sucesso
-	 * 
-	 */
 	@Test
-	public void testLocacao_filmeSemEstoque_2() {
+	public void testLocacao_usuarioVazio() throws FilmeSemEstoqueException{
 		//cenario
-		LocacaoService service = new LocacaoService();
-		Usuario usuario = new Usuario("Usuario 1");
-		Filme filme = new Filme("Filme 2", 0, 4.0);
+		Filme filme = new Filme("Filme 2", 1, 4.0);
 		
 		//acao
 		try {
-			service.alugarFilme(usuario, filme);
-			Assert.fail("Deveria ter lancado uma excecao");
-		} catch (Exception e) {
-			assertThat(e.getMessage(), is("Filme sem estoque"));
+			service.alugarFilme(null, filme);
+			Assert.fail();
+		} catch (LocadoraException e) {
+			assertThat(e.getMessage(), is("Usuario vazio"));
 		}
 	}
 	
 
-	/*
-	 * Uma outra forma de trabalhar com exception em teste
-	 * É usando um novo rule de excecao
-	 * O ExpectedException exception = ExpectedException.none();
-	 * Depois precisamos informar antes da chamada do metodo que
-	 * lanca uma exceçao, as seguinte instrucoes de codigo:
-	 * exception.expect(Exception.class);
-	 * exception.expectMessage("Filme sem estoque");
-	 * 
-	 * Ou seja: queremos que o metodo a seguinte lance
-	 * As seguinte excecao, e esperamos essa mensagem
-	 * Caso isso aconteca o teste passara com sucesso
-	 * 
-	 */
 	@Test
-	public void testLocacao_filmeSemEstoque_3() throws Exception {
+	public void testLocacao_FilmeVazio() throws FilmeSemEstoqueException, LocadoraException{
 		//cenario
-		LocacaoService service = new LocacaoService();
 		Usuario usuario = new Usuario("Usuario 1");
-		Filme filme = new Filme("Filme 2", 0, 4.0);
 		
-		exception.expect(Exception.class);
-		exception.expectMessage("Filme sem estoque");
+		exception.expect(LocadoraException.class);
+		exception.expectMessage("Filme vazio");
 		
 		//acao
-		service.alugarFilme(usuario, filme);
+		service.alugarFilme(usuario, null);
 	}
 }
