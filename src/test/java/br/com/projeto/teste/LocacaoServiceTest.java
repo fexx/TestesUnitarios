@@ -8,10 +8,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -24,6 +26,7 @@ import br.com.projeto.entidades.Usuario;
 import br.com.projeto.exceptions.FilmeSemEstoqueException;
 import br.com.projeto.exceptions.LocadoraException;
 import br.com.projeto.servicos.LocacaoService;
+import br.com.projeto.utils.DataUtils;
 
 public class LocacaoServiceTest {
 
@@ -55,6 +58,16 @@ public class LocacaoServiceTest {
 	
 	@Test
 	public void testeLocacao() throws Exception {
+		/*
+		 * O test é ignorado caso não seja dias da semana
+		 * Caso seja sabado o test é ignorado
+		 * O assume, ele executa o teste, quando o recurso é liberado
+		 * Nesse caso é o dia, que tem que ser dias da semana para ele entrar no teste
+		 * ou seja liberar o recurso.
+		 *  
+		 */
+		Assume.assumeFalse(DataUtils.verificarDiaSemana(new Date(), Calendar.SATURDAY));
+		
 		//cenario
 		Usuario usuario = new Usuario("Usuario 1");
 		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 1, 5.0));
@@ -165,5 +178,32 @@ public class LocacaoServiceTest {
 		
 		//verificacao
 		assertThat(resultado.getValor(), is(14.0));
+	}
+	
+	@Test
+	/*
+	 * @Ignore É usado para ignorar um teste, ou seja o junit não roda esse teste
+	 */
+	public void deveDevolverNaSegundaAoAlugarNoSabado() throws FilmeSemEstoqueException, LocadoraException{
+		/*
+		 * O test é ignorado caso não seja sabado
+		 * Caso seja sabado o test é executado
+		 * O assume, ele executa o teste, quando o recurso é liberado
+		 * Nesse caso é o dia, que tem que ser sabado para ele entrar no teste
+		 * ou seja liberar o recurso.
+		 *  
+		 */
+		Assume.assumeTrue(DataUtils.verificarDiaSemana(new Date(), Calendar.SATURDAY));
+		
+		//cenario
+		Usuario usuario = new Usuario("Usuario 1");
+		List<Filme> filmes = Arrays.asList(new Filme("Filme 1", 1, 5.0));
+		
+		//acao
+		Locacao retorno = service.alugarFilme(usuario, filmes);
+		
+		//verificacao
+		boolean ehSegunda = DataUtils.verificarDiaSemana(retorno.getDataRetorno(), Calendar.MONDAY);
+		Assert.assertTrue(ehSegunda);
 	}
 }

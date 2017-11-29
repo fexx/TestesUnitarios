@@ -2,6 +2,7 @@ package br.com.projeto.servicos;
 
 import static br.com.projeto.utils.DataUtils.adicionarDias;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import br.com.projeto.entidades.Locacao;
 import br.com.projeto.entidades.Usuario;
 import br.com.projeto.exceptions.FilmeSemEstoqueException;
 import br.com.projeto.exceptions.LocadoraException;
+import br.com.projeto.utils.DataUtils;
 
 public class LocacaoService {
 	
@@ -46,13 +48,16 @@ public class LocacaoService {
 		}
 		locacao.setValor(valorTotal);
 		
-		// Entrega no dia seguinte
+		//Entrega no dia seguinte
 		Date dataEntrega = new Date();
 		dataEntrega = adicionarDias(dataEntrega, 1);
+		if(DataUtils.verificarDiaSemana(dataEntrega, Calendar.SUNDAY)) {
+			dataEntrega = adicionarDias(dataEntrega, 1);
+		}
 		locacao.setDataRetorno(dataEntrega);
 		
-		// Salvando a locacao...	
-		// TODO adicionar método para salvar
+		//Salvando a locacao...	
+		//TODO adicionar método para salvar
 		
 		return locacao;
 	}
